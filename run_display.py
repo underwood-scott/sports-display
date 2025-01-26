@@ -62,4 +62,4 @@ def draw_display(canvas, font_file, game):
 
 
 if __name__ == "__main__":
-    run_display('/home/scott.underwood/Documents/sports-sign/rpi-metro-display/6x10.bdf')
+    run_display('/home/scott.underwood/Documents/sports-sign/sports-display/6x10.bdf')
