@@ -11,7 +11,7 @@ def run_display(font_file):
     # prev_dests = []
     # prev_times = []
 
-    draw_display(canvas, font_file, [], [], [], [])
+    draw_display(canvas, font_file, nfl_games[0])
 
     # while True:
     #     force_update = False
