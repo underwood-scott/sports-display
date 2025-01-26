@@ -59,3 +59,7 @@ def draw_display(canvas, font_file, game):
 
     canvas.Clear()
     graphics.DrawText(canvas, font, 0, 7, red_color, game['home_team'] + " @ " + game['away_team'])
+
+
+if __name__ == "__main__":
+    run_display()
