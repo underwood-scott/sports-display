@@ -1,7 +1,7 @@
 from get_data import get_current_games
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
-def run_display(api_key, station_code_receiver, direction_receiver, font_file):
+def run_display(font_file):
     # station code and direction will be sent on init
     nfl_games = get_current_games('nfl', ['Green Bay Packers', 'Washington Commanders'], -5)
     canvas = init_matrix()
@@ -62,4 +62,4 @@ def draw_display(canvas, font_file, game):
 
 
 if __name__ == "__main__":
-    run_display()
+    run_display('/home/scott.underwood/Documents/sports-sign/rpi-metro-display/6x10.bdf')
