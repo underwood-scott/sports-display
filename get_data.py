@@ -14,7 +14,7 @@ def get_current_games(sport, teams, utc_offset):
     games = []
     todays_date = datetime.now()
     for event in response.json()['events']:
-        event_date = datetime.strptime(event['date'], '%Y-%m-%dT%H:%MZ') + timedelta(hours=utc_offset, days=1)
+        event_date = datetime.strptime(event['date'], '%Y-%m-%dT%H:%MZ') + timedelta(hours=utc_offset)
         for team in teams:
             if team in event['name'] and event_date.date() == todays_date.date():
                 competition = event['competitions'][0]
@@ -34,11 +34,15 @@ def get_current_games(sport, teams, utc_offset):
                         game['home_team'] = competitor['team']['name']
                         game['home_logo'] = competitor['team']['logo']
                         game['home_score'] = competitor['score']
-                    else:
+                        game['home_abbreviation'] = competitor['team']['abbreviation']
+                        game['home_color'] = competitor['team']['color']
+                else:
                         game['away_location'] = competitor['team']['location']
                         game['away_team'] = competitor['team']['name']
                         game['away_logo'] = competitor['team']['logo']
                         game['away_score'] = competitor['score']
+                        game['away_abbreviation'] = competitor['team']['abbreviation']
+                        game['away_color'] = competitor['team']['color']
 
                 games.append(game)
 
