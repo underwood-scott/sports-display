@@ -56,7 +56,18 @@ class SportsDisplay:
         # cycle through games, displaying one per 30 seconds
         for game in self.games:
             print(game)
-            self.draw_game(game)
+            self.draw_pregame(game)
+            time.sleep(30)
+
+
+    def run_display_live(self):
+        self.matrix = self.init_matrix()
+        self.canvas = self.matrix.CreateFrameCanvas()
+
+        # cycle through games, displaying one per 30 seconds
+        for game in self.games:
+            print(game)
+            self.draw_pregame(game)
             time.sleep(30)
 
 
@@ -70,7 +81,7 @@ class SportsDisplay:
         return RGBMatrix(options = options)
 
 
-    def draw_game(self, game):
+    def draw_pregame(self, game):
         font = graphics.Font()
         font.LoadFont(FONT_FILE)
 
