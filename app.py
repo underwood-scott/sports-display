@@ -4,29 +4,32 @@ from io import BytesIO
 from multiprocessing import Process
 from PIL import Image
 import requests
-# from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 import time
 
 
 UTC_OFFSET = -5
 NFL_TEAMS = ['Green Bay Packers', 'Washington Commanders']
-NBA_TEAMS = ['Milwaukee Bucks', 'Utah Jazz', 'Orlando Magic']
+NBA_TEAMS = ['Milwaukee Bucks', 'Los Angeles Lakers']
 NCAAFB_TEAMS = ['Wisconsin Badgers']
 NCAABB_TEAMS = ['Wisconsin Badgers', 'Marquette Golden Eagles']
 MLB_TEAMS = ['Milwaukee Brewers', 'Chicago Cubs']
-FONT_FILE = '/home/scott.underwood/Documents/sports-sign/sports-display/6x10.bdf'
+FONT_PATH = '/home/scott.underwood/Documents/sports-sign/rpi-rgb-led-matrix/fonts/'
 
 app = Flask(__name__)
 
 class SportsDisplay:
     def __init__(self, nfl_teams, ncaafb_teams, nba_teams, ncaabb_teams, mlb_teams):
-        self.teams = {'nfl': nfl_teams, 
-                      'ncaafb': ncaafb_teams, 
-                      'nba': nba_teams, 
-                      'ncaabb': ncaabb_teams, 
+        self.teams = {'nfl': nfl_teams,
+                      'ncaafb': ncaafb_teams,
+                      'nba': nba_teams,
+                      'ncaabb': ncaabb_teams,
                       'mlb': mlb_teams}
-        
-    
+        self.current_display = None
+        self.matrix = self.init_matrix()
+        self.canvas = self.matrix.CreateFrameCanvas()
+
+
     def run(self):
         self.find_games()
         self.determine_games_to_display()
@@ -40,25 +43,46 @@ class SportsDisplay:
 
 
     def determine_games_to_display(self):
+        if len(self.games) == 0:
+            self.run_display_no_games()
         if 'STATUS_IN_PROGRESS' in self.unique_statuses:
             self.games = [game for game in self.games if game['status'] == 'STATUS_IN_PROGRESS'] # only keep in progress games right now
             # function that runs in-progress game(s)
-            # self.run_display_live()
+            self.run_display_live()
         else:
             # function that rotates through scheduled and final games
             self.run_display_not_live()
 
 
-    def run_display_not_live(self):
-        self.matrix = self.init_matrix()
-        self.canvas = self.matrix.CreateFrameCanvas()
+    def display_change_needed(self, game):
+        if game == self.current_display:
+            return False
+        return True
 
+
+    def run_display_not_live(self):
         # cycle through games, displaying one per 30 seconds
         for game in self.games:
-            print(game)
-            self.draw_pregame(game)
+            if self.display_change_needed(game):
+            	self.draw_pregame(game)
             time.sleep(30)
 
+        self.run()
+
+
+    def run_display_no_games(self):
+        if self.display_change_needed('No games'):
+            font = graphics.Font()
+            font.LoadFont(FONT_PATH+'9x15B.bdf')
+            self.canvas.Clear()
+            color = graphics.Color(255, 255, 255)
+            graphics.DrawText(self.canvas, font, 28, 14, color, 'NO GAMES')
+            graphics.DrawText(self.canvas, font, 37, 28, color, 'TODAY!')
+            self.current_display = 'No games'
+            self.canvas = self.matrix.SwapOnVSync(self.canvas)
+
+        time.sleep(30)
+        self.run()
 
     def run_display_live(self):
         self.matrix = self.init_matrix()
@@ -82,33 +106,43 @@ class SportsDisplay:
 
 
     def draw_pregame(self, game):
-        font = graphics.Font()
-        font.LoadFont(FONT_FILE)
+        font_small = graphics.Font()
+        font_small.LoadFont(FONT_PATH+'6x10.bdf')
 
-        canvas.Clear()
+        font_large = graphics.Font()
+        font_large.LoadFont(FONT_PATH+'8x13B.bdf')
+
+        self.canvas.Clear()
+
+        # create team names
+        away_rgb = tuple(int(game['away_color'][i:i+2], 16) for i in (0, 2, 4))
+        away_color = graphics.Color(away_rgb[0], away_rgb[1], away_rgb[2])
+        text_color = graphics.Color(255, 255, 255)
+   #    away_color = graphics.Color(2, 247, 96)
+       #away_color = graphics.Color(0, 71, 27)
+        graphics.DrawText(self.canvas, font_large, 34 if len(game['away_abbreviation']) == 3 else 39, 28, text_color, game['away_abbreviation'])
+        home_rgb = tuple(int(game['home_color'][i:i+2], 16) for i in (0, 2, 4))
+        home_color = graphics.Color(home_rgb[0], home_rgb[1], home_rgb[2])
+        graphics.DrawText(self.canvas, font_large, 70 if len(game['home_abbreviation']) == 3 else 75, 28, text_color, game['home_abbreviation'])
+        graphics.DrawText(self.canvas, font_large, 60, 28, text_color, '@')
+
+        # write game time
+        game_time = game['time']
+        game_time_str = game_time.strftime('%I:%M %p')
+        graphics.DrawText(self.canvas, font_large, 34, 14, text_color, game_time_str.split(' ')[0])
+        graphics.DrawText(self.canvas, font_large, 78, 14, text_color, game_time_str.split(' ')[1])
 
         # create logos
         away_response = requests.get(game['away_logo'])
         away_logo = Image.open(BytesIO(away_response.content)).resize((32,32),1)
-        canvas.SetImage(away_logo.convert("RGB"), 0, 0)
+        self.canvas.SetImage(away_logo.convert("RGB"), 0, 0)
         home_response = requests.get(game['home_logo'])
         home_logo = Image.open(BytesIO(home_response.content)).resize((32,32),1)
-        canvas.SetImage(home_logo.convert("RGB"), 96, 0)
-        canvas = self.matrix.SwapOnVSync(canvas)
+        self.canvas.SetImage(home_logo.convert("RGB"), 96, 0)
+        self.canvas = self.matrix.SwapOnVSync(self.canvas)
 
-        # create team names
-    #    graphics.DrawText(canvas, font, 0, 26, red_color, game['away_location'])
-    #    graphics.DrawText(canvas, font, 32, 28, red_color, game['away_team'])
-        away_rgb = tuple(int(game['away_color'][i:i+2], 16) for i in (0, 2, 4))
-        # away_color = graphics.Color(away_rgb[0], away_rgb[1], away_rgb[2])
-        text_color = graphics.Color(199, 209, 61)
-    #    away_color = graphics.Color(2, 247, 96)
-        away_color = graphics.Color(0, 71, 27)
-        graphics.DrawText(canvas, font, 36, 30, away_color, game['away_abbreviation'])
-        # home_rgb = tuple(int(game['home_color'][i:i+2], 16) for i in (0, 2, 4))
-        # home_color = graphics.Color(home_rgb[0], home_rgb[1], home_rgb[2])
-        graphics.DrawText(canvas, font, 74, 30, text_color, game['home_abbreviation'])
-        graphics.DrawText(canvas, font, 61, 30, text_color, '@')
+        self.current_display = game
+
 
     # def serve(self):
     #     app.run(host="0.0.0.0")
