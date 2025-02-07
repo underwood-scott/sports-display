@@ -10,7 +10,7 @@ import time
 
 UTC_OFFSET = -5
 NFL_TEAMS = ['Green Bay Packers', 'Washington Commanders']
-NBA_TEAMS = ['Milwaukee Bucks', 'Los Angeles Lakers']
+NBA_TEAMS = ['Milwaukee Bucks', 'Los Angeles Lakers', 'Orlando Magic']
 NCAAFB_TEAMS = ['Wisconsin Badgers']
 NCAABB_TEAMS = ['Wisconsin Badgers', 'Marquette Golden Eagles']
 MLB_TEAMS = ['Milwaukee Brewers', 'Chicago Cubs']
@@ -85,14 +85,12 @@ class SportsDisplay:
         self.run()
 
     def run_display_live(self):
-        self.matrix = self.init_matrix()
-        self.canvas = self.matrix.CreateFrameCanvas()
-
         # cycle through games, displaying one per 30 seconds
         for game in self.games:
-            print(game)
-            self.draw_pregame(game)
+            if self.display_change_needed(game):
+                self.draw_pregame(game)
             time.sleep(30)
+        self.run()
 
 
     def init_matrix(self):
