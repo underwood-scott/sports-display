@@ -144,7 +144,7 @@ class SportsDisplay:
 
     def draw_postgame(self, game):
         font_small = graphics.Font()
-        font_small.LoadFont(FONT_PATH+'6x10.bdf')
+        font_small.LoadFont(FONT_PATH+'5x8.bdf')
 
         font_large = graphics.Font()
         font_large.LoadFont(FONT_PATH+'8x13B.bdf')
@@ -158,12 +158,14 @@ class SportsDisplay:
         home_color = graphics.Color(home_rgb[0], home_rgb[1], home_rgb[2])
         text_color = graphics.Color(255, 255, 255)
 
-        graphics.DrawText(self.canvas, font_large, 34 if len(game['away_abbreviation']) == 3 else 39, 28, text_color, game['away_abbreviation'])
-        graphics.DrawText(self.canvas, font_large, 70 if len(game['home_abbreviation']) == 3 else 75, 28, text_color, game['home_abbreviation'])
-        graphics.DrawText(self.canvas, font_large, 60, 28, text_color, '@')
+        graphics.DrawText(self.canvas, font_large, 34 if len(game['away_abbreviation']) == 3 else 39, 30, text_color, game['away_abbreviation'])
+        graphics.DrawText(self.canvas, font_large, 70 if len(game['home_abbreviation']) == 3 else 75, 30, text_color, game['home_abbreviation'])
+        graphics.DrawText(self.canvas, font_large, 60, 30, text_color, '@')
 
-        # write game time
-        graphics.DrawText(self.canvas, font_large, 34, 14, text_color, 'FINAL')
+        # write game score/time
+        graphics.DrawText(self.canvas, font_small, 52, 19, text_color, 'FINAL')
+        graphics.DrawText(self.canvas, font_large, 34 if int(game['away_score']) >= 100 else 39, 12, text_color, game['away_score'])
+        graphics.DrawText(self.canvas, font_large, 70 if int(game['home_score']) >= 100 else 75, 12, text_color, game['home_score'])
 
         # create logos
         away_response = requests.get(game['away_logo'])
