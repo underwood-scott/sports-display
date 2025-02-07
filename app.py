@@ -64,7 +64,10 @@ class SportsDisplay:
         # cycle through games, displaying one per 30 seconds
         for game in self.games:
             if self.display_change_needed(game):
-            	self.draw_pregame(game)
+                if game['status'] == 'STATUS_SCHEDULED':
+            	    self.draw_pregame(game)
+                elif game['status'] == 'STATUS_FINAL':
+                    self.draw_postgame(game)
             time.sleep(30)
 
         self.run()
@@ -83,6 +86,7 @@ class SportsDisplay:
 
         time.sleep(30)
         self.run()
+
 
     def run_display_live(self):
         # cycle through games, displaying one per 30 seconds
@@ -104,6 +108,41 @@ class SportsDisplay:
 
 
     def draw_pregame(self, game):
+        font_large = graphics.Font()
+        font_large.LoadFont(FONT_PATH+'8x13B.bdf')
+
+        self.canvas.Clear()
+
+        # create team names
+        away_rgb = tuple(int(game['away_color'][i:i+2], 16) for i in (0, 2, 4))
+        away_color = graphics.Color(away_rgb[0], away_rgb[1], away_rgb[2])
+        home_rgb = tuple(int(game['home_color'][i:i+2], 16) for i in (0, 2, 4))
+        home_color = graphics.Color(home_rgb[0], home_rgb[1], home_rgb[2])
+        text_color = graphics.Color(255, 255, 255)
+
+        graphics.DrawText(self.canvas, font_large, 34 if len(game['away_abbreviation']) == 3 else 39, 28, text_color, game['away_abbreviation'])
+        graphics.DrawText(self.canvas, font_large, 70 if len(game['home_abbreviation']) == 3 else 75, 28, text_color, game['home_abbreviation'])
+        graphics.DrawText(self.canvas, font_large, 60, 28, text_color, '@')
+
+        # write game time
+        game_time = game['time']
+        game_time_str = game_time.strftime('%I:%M %p')
+        graphics.DrawText(self.canvas, font_large, 34, 14, text_color, game_time_str.split(' ')[0])
+        graphics.DrawText(self.canvas, font_large, 78, 14, text_color, game_time_str.split(' ')[1])
+
+        # create logos
+        away_response = requests.get(game['away_logo'])
+        away_logo = Image.open(BytesIO(away_response.content)).resize((32,32),1)
+        self.canvas.SetImage(away_logo.convert("RGB"), 0, 0)
+        home_response = requests.get(game['home_logo'])
+        home_logo = Image.open(BytesIO(home_response.content)).resize((32,32),1)
+        self.canvas.SetImage(home_logo.convert("RGB"), 96, 0)
+        self.canvas = self.matrix.SwapOnVSync(self.canvas)
+
+        self.current_display = game
+
+
+    def draw_postgame(self, game):
         font_small = graphics.Font()
         font_small.LoadFont(FONT_PATH+'6x10.bdf')
 
@@ -115,20 +154,16 @@ class SportsDisplay:
         # create team names
         away_rgb = tuple(int(game['away_color'][i:i+2], 16) for i in (0, 2, 4))
         away_color = graphics.Color(away_rgb[0], away_rgb[1], away_rgb[2])
-        text_color = graphics.Color(255, 255, 255)
-   #    away_color = graphics.Color(2, 247, 96)
-       #away_color = graphics.Color(0, 71, 27)
-        graphics.DrawText(self.canvas, font_large, 34 if len(game['away_abbreviation']) == 3 else 39, 28, text_color, game['away_abbreviation'])
         home_rgb = tuple(int(game['home_color'][i:i+2], 16) for i in (0, 2, 4))
         home_color = graphics.Color(home_rgb[0], home_rgb[1], home_rgb[2])
+        text_color = graphics.Color(255, 255, 255)
+
+        graphics.DrawText(self.canvas, font_large, 34 if len(game['away_abbreviation']) == 3 else 39, 28, text_color, game['away_abbreviation'])
         graphics.DrawText(self.canvas, font_large, 70 if len(game['home_abbreviation']) == 3 else 75, 28, text_color, game['home_abbreviation'])
         graphics.DrawText(self.canvas, font_large, 60, 28, text_color, '@')
 
         # write game time
-        game_time = game['time']
-        game_time_str = game_time.strftime('%I:%M %p')
-        graphics.DrawText(self.canvas, font_large, 34, 14, text_color, game_time_str.split(' ')[0])
-        graphics.DrawText(self.canvas, font_large, 78, 14, text_color, game_time_str.split(' ')[1])
+        graphics.DrawText(self.canvas, font_large, 34, 14, text_color, 'FINAL')
 
         # create logos
         away_response = requests.get(game['away_logo'])
