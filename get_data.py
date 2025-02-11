@@ -14,7 +14,7 @@ def get_current_games(sport, teams, utc_offset):
     games = []
     todays_date = datetime.now()
     for event in response.json()['events']:
-        event_date = datetime.strptime(event['date'], '%Y-%m-%dT%H:%MZ') + timedelta(hours=utc_offset, days = 1)
+        event_date = datetime.strptime(event['date'], '%Y-%m-%dT%H:%MZ') + timedelta(hours=utc_offset)
         for team in teams:
             if team in event['name'] and event_date.date() == todays_date.date():
                 competition = event['competitions'][0]
@@ -22,7 +22,9 @@ def get_current_games(sport, teams, utc_offset):
                 game = {'time': event_date.time(), 
                         'status': event['status']['type']['name'],
                         'clock': event['status']['displayClock'],
-                        'period': event['status']['period']}
+                        'period': event['status']['period'],
+                        'sport': sport,
+                        'name': event['name']}
                 if sport == 'nfl' or sport == 'ncaafb':
                     game['down'] = competition.get('situation', {}).get('shortDownDistanceText'),
                     game['spot'] = competition.get('situation', {}).get('possessionText'),
@@ -36,7 +38,7 @@ def get_current_games(sport, teams, utc_offset):
                         game['home_score'] = competitor['score']
                         game['home_abbreviation'] = competitor['team']['abbreviation']
                         game['home_color'] = competitor['team']['color']
-                else:
+                    else:
                         game['away_location'] = competitor['team']['location']
                         game['away_team'] = competitor['team']['name']
                         game['away_logo'] = competitor['team']['logo']
@@ -48,6 +50,27 @@ def get_current_games(sport, teams, utc_offset):
 
     return games
 
+
+def update_game(game):
+    urls = {'nfl': 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
+            'nba': 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+            'ncaafb': 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard',
+            'ncaabb': 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard',
+            'mlb': 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard'}
+
+    response = requests.get(urls[game['sport']])
+    for event in response.json()['events']:
+        if event['name'] == game['name']:
+            competition = event['competitions'][0]
+            update = {'clock': event['status']['displayClock'],
+                    'period': event['status']['period']}
+            for competitor in competition['competitors']:
+                if competitor['homeAway'] == 'home':
+                    update['home_score'] = competitor['score']
+                else:
+                    update['away_score'] = competitor['score']
+
+    return update
 
 
 if __name__ == '__main__':
